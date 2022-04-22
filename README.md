@@ -1,10 +1,18 @@
 
 
-# Concadia -- a corpus of **con**textualized images with **c**aptions and **a**lt **d**escriptions from Wikipe**dia**
+# Concadia -- a dataset of **con**textualized images with **c**aptions and **a**lt **d**escriptions from Wikipe**dia**
 
-Concadia is a corpus introduced in our paper "Concadia: Tackling image accessibility with context" (*to be submitted*) and contains Wikipedia images with their respective captions, alt descriptions and the broader context the images are situated in. We use this corpus to argue for a clear distinction between descriptions and captions, and show the similarities and differences between the two text forms. We further argue that captions and broader context are an important resource that can inform the generation of descriptions which are very sparse across the Web but absolutely crucial to make images accessible.
+Concadia is a dataset introduced in our paper [Concadia: Tackling image accessibility with descriptive texts and context](https://arxiv.org/abs/2104.08376) and contains Wikipedia images with their respective captions, alt descriptions and the broader context the images are situated in. We use this corpus to argue for a clear distinction between descriptions and captions, and show the similarities and differences between the two text forms. We further argue that captions and broader context are an important resource that can inform the generation of descriptions which are very sparse across the Web but absolutely crucial to make images accessible.
 
-# How to create Concadia
+# Download Concadia
+
+The Concadia dataset requires the following two resources: 
+
+[Click here](https://drive.google.com/file/d/1kiTSiqk7y7JdHssXjoLwcOomC7lhb5k8/view?usp=sharing) to download the json file containing the image names and sources, their corresponding descriptions, captions and immediate paragraph information. It also already contains a train/val/test split. The file format is very similar to the Karpathy test splits for MS-COCO.
+
+[Click here](https://drive.google.com/file/d/1gDhVlOwcGcwBT5LWYwgn9xEElGlKVpFb/view?usp=sharing) to download all images already sized to 256x256px each.
+
+# How to create Concadia from sratch
 
 Crawling all Wikipedia articles is very time consuming. Instead, we parse the publicly available Wikipedia XML file to find articles with all potential datapoints, i.e., that contain images with alt descriptions and captions. Then, we only have to crawl the articles with potential datapoints and extract the file path, alt descriptions, captions and accompanying contexts.
 

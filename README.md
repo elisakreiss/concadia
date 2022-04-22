@@ -12,6 +12,8 @@ The Concadia dataset requires the following two resources:
 
 [Click here](https://drive.google.com/file/d/1gDhVlOwcGcwBT5LWYwgn9xEElGlKVpFb/view?usp=sharing) to download all images already sized to 256x256px each.
 
+Please, contact me at ekreiss@stanford.edu if there are any issues with the above files or you're experiencing any issues with using this dataset.
+
 # How to create Concadia from sratch
 
 Crawling all Wikipedia articles is very time consuming. Instead, we parse the publicly available Wikipedia XML file to find articles with all potential datapoints, i.e., that contain images with alt descriptions and captions. Then, we only have to crawl the articles with potential datapoints and extract the file path, alt descriptions, captions and accompanying contexts.

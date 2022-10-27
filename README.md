@@ -2,7 +2,7 @@
 
 # Concadia -- a dataset of **con**textualized images with **c**aptions and **a**lt **d**escriptions from Wikipe**dia**
 
-Concadia is a dataset introduced in our paper [Concadia: Tackling image accessibility with descriptive texts and context](https://arxiv.org/abs/2104.08376) and contains Wikipedia images with their respective captions, alt descriptions and the broader context the images are situated in. We use this corpus to argue for a clear distinction between descriptions and captions, and show the similarities and differences between the two text forms. We further argue that captions and broader context are an important resource that can inform the generation of descriptions which are very sparse across the Web but absolutely crucial to make images accessible.
+Concadia is a dataset introduced in our paper [Concadia: Towards Image-Based Text Generation with a Purpose](https://arxiv.org/abs/2104.08376) and contains Wikipedia images with their respective captions, alt descriptions and the broader context the images are situated in. We use this corpus to argue for a clear distinction between descriptions and captions, and show the similarities and differences between the two text forms. We further argue that captions and broader context are an important resource that can inform the generation of descriptions which are very sparse across the Web but absolutely crucial to make images accessible.
 
 # Download Concadia
 

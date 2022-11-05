@@ -1,10 +1,8 @@
 
 
-# Concadia -- a dataset of **con**textualized images with **c**aptions and **a**lt **d**escriptions from Wikipe**dia**
+# CONCADIA -- a dataset of CONtextualized images with Captions and Alt Descriptions from WikipedIA
 
-Concadia is a dataset introduced in our paper [Concadia: Towards Image-Based Text Generation with a Purpose](https://arxiv.org/abs/2104.08376) and contains Wikipedia images with their respective captions, alt descriptions and the broader context the images are situated in. We use this corpus to argue for a clear distinction between descriptions and captions, and show the similarities and differences between the two text forms. We further argue that captions and broader context are an important resource that can inform the generation of descriptions which are very sparse across the Web but absolutely crucial to make images accessible.
-
-# Download Concadia
+## Download Concadia
 
 The Concadia dataset requires the following two resources: 
 
@@ -14,11 +12,11 @@ The Concadia dataset requires the following two resources:
 
 Please, contact me at ekreiss@stanford.edu if there are any issues with the above files or you're experiencing any issues with using this dataset.
 
-# Experimental Data
+## Experimental Data
 
 Participants rated original and model-generated descriptions and captions for 300 images according to how well the text could replace the image and how much one could learn from the text that couldn't be learned from the image. The data is available [here](https://drive.google.com/file/d/1o8dFFafLdYFeIm6BYvM7C0r9VmFD256F/view?usp=sharing).
 
-# How to create Concadia from sratch
+## How to create Concadia from sratch
 
 Crawling all Wikipedia articles is very time consuming. Instead, we parse the publicly available Wikipedia XML file to find articles with all potential datapoints, i.e., that contain images with alt descriptions and captions. Then, we only have to crawl the articles with potential datapoints and extract the file path, alt descriptions, captions and accompanying contexts.
 

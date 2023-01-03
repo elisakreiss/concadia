@@ -1,0 +1,10 @@
+tqdm
+pyyaml
+matplotlib
+requests
+scikit-image
+anytree
+regex
+boto3
+tensorboard
+future

@@ -1,0 +1,484 @@
+/*"#E6AB02" - orange
+"#7CB637" - green
+(#567f26 - darkgreen)
+"#4C3B4D" - purple/brown
+"#E7298A" - pink
+"#4381C1" - blue
+"#08415C" - darkblue
+"#FB3640" - red
+"#999999" - grey*/
+
+
+html,
+body {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+/* the container where the views are plugged */
+main {
+    min-height: 100%;
+    background: #f1f1f1;
+    /* background: white; */
+}
+
+hr { 
+    box-sizing: border-box;
+    max-width: 660px;
+    margin: 0 auto;
+    border-color: #7CB637;
+}
+
+.view {
+    box-sizing: border-box;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 50px 0;
+}
+
+.thanks-templ {
+    max-width: auto;
+}
+
+/* titles */
+h1 {
+    color: rgba(0, 0, 0, 0.87);
+    font-family: "Playfair Display", "Noto Serif", serif;
+    font-size: 34px;
+    text-align: center;
+}
+
+h2,
+h3,
+h4 {
+    color: rgba(0, 0, 0, 0.87);
+    font-family: "Lato", "Noto Sans", serif;
+    font-size: 20px;
+    text-align: center;
+}
+
+h4 {
+    font-size: 18px;
+    text-align: left;
+}
+
+/* text */
+p {
+    color: rgba(0, 0, 0, 0.87);
+    font-size: 17px;
+    line-height: 27px;
+    font-family: "Lato", "Noto Sans", sans-serif;
+    margin: 0 auto;
+    max-width: 650px;
+}
+
+button,
+.button {
+    background-color: #4381C1;
+    border: none;
+    border-radius: 2px;
+    color: white;
+    display: block;
+    font-family: "Lato", "Noto Sans", sans-serif;
+    font-size: 12px;
+    line-height: 20px;
+    font-weight: 700;
+    letter-spacing: 0.9px;
+    margin: 40px auto 20px auto;
+    outline: none;
+    padding: 5px 10px;
+    text-transform: uppercase;
+}
+
+/* buttons when covered or clicked */
+button:hover,
+button:focus,
+.button:hover,
+.button:focus {
+    background-color: #08415C;
+}
+
+.progress-bar-container {
+    float: right;
+    margin: 0 10px 60px 10px;
+}
+
+.progress-bar-container p {
+    font-size: 15px;
+    text-align: right;
+}
+
+.clearfix {
+    clear: both;
+}
+
+.progress-bar {
+    border: 1px solid #4381C1;
+    border-radius: 3px;
+    display: inline-block;
+    height: 14px;
+    margin: 5px;
+    width: 60px;
+}
+
+.progress-bar #filled {
+    background-color: #4381C1;
+    display: block;
+    height: 14px;
+}
+
+.stimulus-container {
+    height: 300px;
+    margin: 0 auto;
+    position: relative;
+    width: 400px;
+}
+
+.stimulus {
+    background-color: #414f6f;
+    height: 120px;
+    left: 140px;
+    position: absolute;
+    top: 90px;
+    width: 120px;
+}
+
+.legal-text {
+    font-style: italic;
+    text-align: left;
+    color: #555;
+    font-size: 11px;
+    line-height: 15px;
+}
+
+.question {
+    font-size: 20px;
+    padding: 30px 0;
+    text-align: center;
+}
+
+.critical_text {
+    font-size: 20px;
+    padding: 30px 0;
+    text-align: center;
+}
+
+small {
+    font-size: 12px;
+}
+
+.picture {
+    max-width: 660px;
+    display: flex;
+    justify-content: center;
+    margin: 0 auto;
+}
+
+.answer-container {
+    text-align: center;
+    color: grey;
+    font-size: 16px;
+}
+
+/* buttons response */
+.answer-container input[name=answer] {
+    display: none;
+}
+
+.answer-container .button-answer {
+    background-color: #4381C1;
+    border: none;
+    border-radius: 2px;
+    color: white;
+    cursor: pointer;
+    display: inline-block;
+    font-family: "Lato", "Noto Sans", sans-serif;
+    font-size: 12px;
+    line-height: 20px;
+    font-weight: 700;
+    letter-spacing: 0.9px;
+    margin: 40px 5px 20px 5px;
+    outline: none;
+    padding: 5px 10px;
+    text-transform: uppercase;
+}
+
+.answer-container .button-answer:hover {
+    background-color: #324D93;
+}
+
+.answer-container .img-answer {
+    margin: 20px;
+}
+
+/* slider response */
+
+/* slider  ---o--- 
+	--- track
+	 o  thumb
+*/
+
+/* slider track styles */
+input[type=range] {
+    -webkit-appearance: none;
+    outline: none;
+    margin: 0 20px;
+    padding: 0;
+    width: 360px;
+}
+
+input[type=range]::-webkit-slider-runnable-track {
+    background: #cbcbcb;
+    border: none;
+    outine: none;
+    border-radius: 10px;
+    cursor: pointer;
+    height: 6px;
+}
+
+input[type=range]::-moz-range-track {
+    background: #cbcbcb;
+    border-radius: 10px;
+    cursor: pointer;
+    height: 6px;
+}
+
+/* slider thumb styles */
+input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    background: #676767;
+    border: 4px solid #fefefe;
+    border-radius: 50%;
+    box-sizing: content-box;
+    box-shadow: 2px 1px 3px rgba(0, 0, 0, 0.6);
+    height: 16px;
+    margin-top: -9px;
+    margin-left: -2px;
+    width: 16px;
+}
+
+input[type=range]::-moz-range-thumb {
+    background: #676767;
+    border: 4px solid #fefefe;
+    border-radius: 50%;
+    box-shadow: 2px 1px 3px rgba(0, 0, 0, 0.6);
+    height: 16px;
+    width: 16px;
+}
+
+input[type="range"]:focus::-webkit-slider-thumb {
+    background: #7CB637;
+}
+
+input[type="range"]:focus::-moz-range-thumb {
+    background: #7CB637;
+}
+
+textarea {
+    font-size: 20px;
+}
+
+.help-text {
+    font-style: italic;
+    text-align: center;
+    color: #555;
+}
+
+.story_text {
+    color: #555;
+    border-style: solid;
+    border-width: 2px; 
+    border-color: #555;
+    padding: 10px;
+}
+
+/* does not display the element */
+.nodisplay {
+    display: none;
+}
+
+#prolific-id-form {
+    margin-top: 20px;
+}
+
+.post-test-templ form {
+    padding: 30px 0;
+    max-width: 550px;
+    margin: 0 auto;
+}
+
+.post-test-templ p {
+    display: flex;
+    flex-direction: column;
+    margin: 25px auto;
+    text-align: left;
+}
+
+.post-test-templ form input,
+.post-test-templ form select {
+    width: 200px;
+    max-width: 200px;
+}
+
+.post-test-templ form label {
+    margin: 0 10px 0 0;
+}
+
+.post-test-templ form label span {
+    font-size: 0.8em;
+}
+
+.post-test-templ form textarea {
+    border-radius: 5px;
+    border: 1px solid #777;
+    font-family: "Lato", serif;
+    font-size: 1em;
+    padding: 10px 15px;
+    margin: 5px 0 0 0;
+}
+
+.thanks-templ {
+    margin: 0 20px;
+    max-width: inherit;
+}
+
+.thanks-templ .debug-results {
+    text-align: left;
+}
+
+.thanks-templ h4 {
+    margin: 40px 10px;
+    text-align: center;
+}
+
+.thanks-templ strong {
+    border: 2px solid #25BC82;
+    color: #25BC82;
+    display: inline-block;
+    padding: 10px;
+}
+
+.thanks-templ .success-message {
+    text-align: center;
+}
+
+.thanks-templ .prolific-url {
+    color: white;
+    display: inline-block;
+    background: #E74D10;
+    border-radous: 3px;
+    padding: 10px;
+    margin: 8px 4px;
+    text-decoration: none;
+}
+
+.debug-results {
+    overflow-x: scroll;
+}
+
+#debugresults {
+    border-collapse: collapse;
+    font-family: "Lato", "Noto Sans", sans-serif;
+    font-size: 15px;
+    line-height: 20px;
+    width: 100%;
+}
+
+#debugresults td,
+#debugresults th {
+    border: 1px solid #ddd;
+    padding: 8px;
+}
+
+#debugresults tr:nth-child(even) {
+    background-color: #f2f2f2;
+}
+
+#debugresults tr:hover {
+    background-color: #ddd;
+}
+
+#debugresults th {
+    background-color: #4381C1;
+    color: white;
+    padding: 15px 8px;
+    text-align: left;
+}
+
+/* Similar to Bootstrap button */
+.download-btn {
+    text-decoration: none;
+    width: 221px;
+}
+
+/* submission loader */
+/* https://projects.lukehaas.me/css-loaders/ */
+.loader,
+.loader:before,
+.loader:after {
+    border-radius: 50%;
+    width: 2.5em;
+    height: 2.5em;
+    -webkit-animation-fill-mode: both;
+    animation-fill-mode: both;
+    -webkit-animation: load7 1.3s infinite ease-in-out;
+    animation: load7 1.3s infinite ease-in-out;
+}
+
+.loader {
+    color: #4381C1;
+    font-size: 10px;
+    margin: 40px auto;
+    position: relative;
+    text-indent: -9999em;
+    -webkit-transform: translateZ(0);
+    -ms-transform: translateZ(0);
+    transform: translateZ(0);
+    -webkit-animation-delay: -0.16s;
+    animation-delay: -0.16s;
+}
+
+.loader:before,
+.loader:after {
+    content: '';
+    position: absolute;
+    top: 0;
+}
+
+.loader:before {
+    left: -3.5em;
+    -webkit-animation-delay: -0.32s;
+    animation-delay: -0.32s;
+}
+
+.loader:after {
+    left: 3.5em;
+}
+
+@-webkit-keyframes load7 {
+
+    0%,
+    80%,
+    100% {
+        box-shadow: 0 2.5em 0 -1.3em;
+    }
+
+    40% {
+        box-shadow: 0 2.5em 0 0;
+    }
+}
+
+@keyframes load7 {
+
+    0%,
+    80%,
+    100% {
+        box-shadow: 0 2.5em 0 -1.3em;
+    }
+
+    40% {
+        box-shadow: 0 2.5em 0 0;
+    }
+}

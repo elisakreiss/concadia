@@ -1,0 +1,769 @@
+---
+title: "Wikipedia Caption Analysis"
+output: rmarkdown::github_document  
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r libraries, include=FALSE}
+library(cowplot)
+library(tidyverse)
+
+theme_set(theme_cowplot())
+theme_set(theme_bw(18))
+```
+
+
+# Wikipedia distribution
+
+```{r}
+
+wiki_sample = read_csv("../ratio_estimates.csv")
+
+# wiki_sample = tibble(
+#   sample = c(1,2,3,4,5,6,7,8),
+#   num_lines = c(226795,1230026,5267645,10157289,10658404,11119761,15252703,20072825),
+#   images = c(7427,6166,9862,6246,4311,4758,755,1751),
+#   descriptions = c(663,321,842,347,226,234,15,138),
+#   captions = c(6368,5413,8604,4751,3605,3728,680,1481)
+# )
+
+wiki_sample
+
+wiki_data = wiki_sample %>% 
+  filter(images > 0) %>% 
+  mutate(descr_prop = descriptions/images,
+         caption_prop = captions/images) %>% 
+  select(images, descr_prop, caption_prop) %>% 
+  gather(text_type, value, descr_prop, caption_prop) %>% 
+  mutate_at(vars(text_type), funs(case_when(
+    . == "caption_prop" ~ "Proportion of\ncaptions",
+    . == "descr_prop" ~ "Proportion of\ndescriptions",
+    TRUE ~ "other")))
+
+glimpse(wiki_data)
+
+wiki_data %>% 
+  ggplot(., aes(x=text_type, y=value, color=text_type)) +
+    facet_grid(~text_type, scales = "free") +
+    ylim(0,1) +
+    # geom_point(alpha = 0.3,
+    #            size = 4,
+    #            color = "black",
+    #            position = position_jitter(height=0, width = 0.02)) +
+    geom_violin(color="black", fill="black", alpha=0.1) +
+    stat_summary(fun = mean,
+                 geom = "point",
+                 size = 5) +
+    stat_summary(fun.data = "mean_cl_boot",
+                 geom = "errorbar",
+                 size = .5,
+                 width = 0.1) +
+    scale_color_manual(values=c('#fc8d62', '#66c2a5')) +
+    theme(legend.position = "none") +
+    theme(axis.title = element_blank(),
+          axis.text.x = element_blank(),
+          axis.ticks.x = element_blank())
+
+# wiki_data = wiki_sample %>% 
+#   mutate(img_per_article = images/1000,
+#          prop_img_w_descr = descriptions/images,
+#          prop_img_w_caption = captions/images) %>% 
+#   select(sample, prop_img_w_descr, prop_img_w_caption, img_per_article) %>% 
+#   gather(metric, value, prop_img_w_caption, prop_img_w_descr, img_per_article) %>% 
+#   mutate_at(vars(metric), funs(case_when(
+#     . == "prop_img_w_caption" ~ "Proportion of\ncaptions", 
+#     . == "prop_img_w_descr" ~ "Proportion of\ndescriptions",
+#     TRUE ~ "Number of\nimages per article")))
+# 
+# wiki_data %>% 
+#   filter(metric != "Number of\nimages per article") %>% 
+#   ggplot(., aes(x=metric, y=value, color=metric)) +
+#     facet_grid(~metric, scales = "free") +
+#     ylim(0,1) +
+#     geom_point(alpha = 0.3, 
+#                size = 4, 
+#                color = "black", 
+#                position = position_jitter(height=0, width = 0.02)) +
+#     stat_summary(fun = mean,
+#                  geom = "point",
+#                  size = 5) +
+#     stat_summary(fun.data = "mean_cl_boot",
+#                  geom = "errorbar",
+#                  size = .5,
+#                  width = 0.1) +
+#     scale_color_manual(values=c('#fc8d62', '#66c2a5')) +
+#     theme(legend.position = "none") +
+#     theme(axis.title = element_blank(),
+#           axis.text.x = element_blank(),
+#           axis.ticks.x = element_blank())
+# 
+# wiki_data %>% 
+#   filter(metric == "Number of\nimages per article") %>% 
+#   ggplot(., aes(x=metric, y=value, color=metric)) +
+#     facet_grid(~metric, scales = "free") +
+#     # ylim(0,1) +
+#     geom_point(alpha = 0.3, 
+#                size = 4, 
+#                color = "black", 
+#                position = position_jitter(height=0, width = 0.02)) +
+#     stat_summary(fun = mean,
+#                  geom = "point",
+#                  size = 5) +
+#     stat_summary(fun.data = "mean_cl_boot",
+#                  geom = "errorbar",
+#                  size = .5,
+#                  width = 0.1) +
+#     scale_color_manual(values=c('blue')) +
+#     theme(legend.position = "none") +
+#     theme(axis.title = element_blank(),
+#           axis.text.x = element_blank(),
+#           axis.ticks.x = element_blank())
+# 
+mean(wiki_data[wiki_data$text_type=="Proportion of\ncaptions",]$value)
+mean(wiki_data[wiki_data$text_type=="Proportion of\ndescriptions",]$value)
+
+# ggsave("wiki_sample.png", height=3.5,width=6)
+
+```
+
+
+
+```{r data import, include=FALSE}
+df = read_csv("final_data.csv") %>% 
+  rename(description_raw = description,
+         caption_raw = caption,
+         file_raw = filename)
+```
+
+```{r clean df, include=FALSE}
+
+df_clean = df %>% 
+  mutate(description = str_replace(description_raw, "\\{'raw': ['\\\"]", "")) %>% 
+  mutate_at(vars(description), funs(str_replace(., "['\\\"], 'tokens': \\[.*", ""))) %>% 
+  mutate(caption = str_replace(caption_raw, "\\{'raw': ['\\\"]", "")) %>% 
+  mutate_at(vars(caption), funs(str_replace(., "['\\\"], 'tokens': \\[.*", "")))
+
+# 41143
+length(unique(df_clean$article_id))
+
+# 96918
+nrow(df_clean)
+
+df_clean %>% 
+  group_by(split) %>% 
+  summarize(data = n()) %>% 
+  ungroup
+
+df_clean %>% 
+  distinct(article_id, split) %>% 
+  group_by(split) %>% 
+  summarize(data = n()) %>% 
+  ungroup
+
+df_clean %>%
+  rowid_to_column("ID") %>% 
+  gather(type, text, description, caption) %>% 
+  # group_by(split, type) %>%
+  group_by(type) %>%
+  mutate(characters = str_length(text)) %>% 
+  mutate(words = str_count(text, boundary("word"))) %>% 
+  summarize(avg_nr_of_words = mean(words),
+            avg_nr_of_chars = mean(characters)) %>% 
+  ungroup() %>% 
+  mutate(avg_word_len = avg_nr_of_chars/avg_nr_of_words)
+
+```
+
+# Length difference
+
+Descriptions are longer but captions have longer words.
+
+```{r length, echo=FALSE, fig.asp=0.6}
+df_main = df_clean %>%
+  rowid_to_column("ID") %>% 
+  gather(type, text, description, caption) %>% 
+  mutate(characters = str_length(text)) %>% 
+  mutate(words = str_count(text, boundary("word")))
+
+df_main %>% 
+  gather(len_param, length, characters, words) %>% 
+  ggplot(., aes(x=type, y=length, fill=type)) + 
+    facet_wrap(~len_param, scales = "free_y") + 
+    stat_summary(fun = mean,
+                 geom = "bar",
+                 color = "black",
+                 position = position_dodge(0.9)) +
+    stat_summary(fun.data = "mean_cl_boot",
+                 geom = "errorbar",
+                 size = .3,
+                 width = 0.3,
+                 position = position_dodge(0.9)) +
+    theme(legend.position = "none") +
+    scale_fill_manual(values=c('#fc8d62', '#66c2a5')) +
+    theme(strip.background = element_rect(fill="white")) +
+    xlab("") +
+    ylab("Average length")
+
+# ggsave("caption_descr_length.png", height=3.5,width=6)
+
+df_main %>% 
+  gather(len_param, length, characters, words) %>% 
+  mutate(cond = str_c(type, len_param, sep="_")) %>% 
+  ggplot(., aes(x=type, y=length, fill=cond)) + 
+    # facet_wrap(~len_param, scales = "free_y") + 
+    stat_summary(fun = mean,
+                 geom = "bar",
+                 color = "black",
+                 position = position_dodge(0.9)) +
+    stat_summary(fun.data = "mean_cl_boot",
+                 geom = "errorbar",
+                 size = .3,
+                 width = 0.3,
+                 position = position_dodge(0.9)) +
+    theme(legend.position = "none") +
+    scale_fill_manual(values=c('#fca381', '#c9704e', '#84ceb7', '#519b84')) +
+    theme(strip.background = element_rect(fill="white")) +
+    xlab("") +
+    ylab("Average length")
+
+```
+
+There is no correlation of description and caption length (here, measure in number of words), i.e., it's not the case that images that receive long captions, also receive long descriptions and vice versa.
+
+```{r length correlation, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+df_plot = df_clean %>%  
+  mutate(descr_word_len = str_count(description, boundary("word"))) %>% 
+  mutate(caption_word_len = str_count(caption, boundary("word")))
+
+ggplot(df_plot, aes(x=descr_word_len, y=caption_word_len)) +
+  geom_abline(color = "gray40", lty = 2) +
+  geom_point(alpha=0.2, color="#526f8b") +
+  theme(legend.position = "none") +
+  xlim(0,200) +
+  ylim(0,200) +
+  xlab("Description length") +
+  ylab("Caption length")
+  # geom_smooth(method="lm")
+
+
+```
+
+# Similarity between captions and corresponding descriptions
+
+```{r similarity, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE, fig.asp=0.8, fig.width=5, out.width="50%"}
+library(hashr)
+library(stringdist)
+
+calc_jacc_dist = function(string_1,string_2){
+  # convert strings to list of unique words 
+  # case doesn't matter:
+  list_1 = strsplit(str_to_lower(string_1),split = " ")[[1]]
+  list_2 = strsplit(str_to_lower(string_2),split = " ")[[1]]
+  # compare lists according to cardinality of intersection / cardinality of union
+  inters_cardinality = length(intersect(list_1,list_2))
+  union_cardinality = length(union(list_1,list_2))
+  dist = 1 - (inters_cardinality/union_cardinality)
+  dist
+}
+
+df_dist = df_clean %>% 
+  # head(.,n=10000) %>% 
+  rowwise() %>% 
+  mutate(dist = calc_jacc_dist(description, caption)) %>% 
+  ungroup() %>% 
+  mutate(caption_shuffled = sample(caption, replace=FALSE)) %>% 
+  rowwise() %>% 
+  mutate(dist_shuffled = calc_jacc_dist(description, caption_shuffled))
+
+df_dist %>% 
+  select(dist, dist_shuffled) %>% 
+  gather(condition, value) %>%  
+  ggplot(., aes(x=value, color=condition, fill=condition)) +
+    geom_histogram(binwidth=0.05, color="#e9ecef", alpha=0.5, position = 'identity') +
+    theme(legend.position = "top") +
+    xlab("Distance") +
+    ylab("Number of instances") +
+    scale_fill_manual(name = "",
+                       labels = c("dist" = "Original", 
+                                  "dist_shuffled" = "Shuffled"),
+                       values=c("#d7191c", "#abd9e9"))
+
+df_dist %>% 
+  select(dist, dist_shuffled) %>% 
+  gather(condition, value) %>% 
+  mutate_at(vars(condition), funs(ifelse(.=="dist", "Original", "Shuffled"))) %>% 
+  ggplot(., aes(x=condition, y=value, color=condition, fill=condition)) +
+    geom_violin(color="black", fill="black", alpha=0.2) +
+    stat_summary(fun = mean,
+                 geom = "point",
+                 size = 5) +
+    stat_summary(fun.data = "mean_cl_boot",
+                 geom = "errorbar",
+                 size = .3,
+                 width = 0.1) +
+    theme(legend.position = "none") +
+    scale_color_manual(values=c("#d7191c", "#2c7bb6")) +
+    coord_cartesian(ylim=c(0,1)) +
+    ylab("Distance") +
+    xlab("")
+
+# ggsave("jacc_distance.png", height=3.5,width=5)
+
+mean(df_dist$dist)
+
+ks.test(df_dist$dist, df_dist$dist_shuffled)
+
+```
+
+```{r}
+sbert_cosine_sim = read_csv("sbert_sim.csv") %>% 
+  select(-X1) %>% 
+  gather(condition, value) %>% 
+  mutate_at(vars(condition), funs(ifelse(.=="match_sim", "Original", "Shuffled")))
+
+sbert_cosine_sim %>% 
+  ggplot(., aes(x=condition, y=value, color=condition, fill=condition)) +
+    geom_violin(color="black", fill="black", alpha=0.2) +
+    stat_summary(fun = mean,
+                 geom = "point",
+                 size = 5) +
+    stat_summary(fun.data = "mean_cl_boot",
+                 geom = "errorbar",
+                 size = .3,
+                 width = 0.1) +
+    theme(legend.position = "none") +
+    scale_color_manual(values=c("#d7191c", "#2c7bb6")) +
+    coord_cartesian(ylim=c(0,1)) +
+    ylab("Similarity") +
+    xlab("")
+
+nrow(sbert_cosine_sim)/2
+
+# ggsave("sbert-sim.png", height=3.5,width=5.5)
+
+sbert_cosine_sim %>% 
+  group_by(condition) %>% 
+  summarise(avg = mean(value))
+
+ks.test(sbert_cosine_sim[sbert_cosine_sim$condition=="Original",]$value,
+        sbert_cosine_sim[sbert_cosine_sim$condition=="Shuffled",]$value)
+
+```
+
+
+```{r pos analysis}
+
+descr_pos = read_csv("pos_tags_descr.csv") %>% 
+  rename(tags="descr_tags")
+
+sum_descr_pos = descr_pos %>% 
+  group_by(tags) %>% 
+  summarize(descr_frq = n()) %>% 
+  ungroup()
+
+caption_pos = read_csv("pos_tags_caption.csv") %>% 
+  rename(tags="caption_tags")
+
+sum_caption_pos = caption_pos %>% 
+  group_by(tags) %>% 
+  summarize(caption_frq = n()) %>% 
+  ungroup()
+
+all_pos = sum_descr_pos %>% 
+  left_join(sum_caption_pos) %>% 
+  gather(text, frq, descr_frq, caption_frq) %>% 
+  group_by(text) %>% 
+  mutate(prop_frq = frq/sum(frq)) %>% 
+  ungroup()
+
+all_pos %>% 
+  mutate_at(vars(text), funs(ifelse(.=="caption_frq", "captions", "descriptions"))) %>%
+  ggplot(., aes(x=reorder(tags,-prop_frq), y=prop_frq, fill=text)) +
+    geom_bar(stat="identity",
+             width=0.8,
+             position = position_dodge(0.8)) +
+    theme(axis.text.x = element_text(angle = 30,hjust=1)) +
+    scale_fill_manual(values=c('#fc8d62', '#66c2a5')) +
+    theme(legend.position = "top") +
+    ylab("Proportion of POS tags") +
+    xlab("POS tags")
+
+# ggsave("postags.png", height=5,width=14)
+ 
+bind_rows("description" = descr_pos, "caption" = caption_pos, .id="condition") %>%
+  mutate(PN = ifelse(tags=="NNP" | tags=="NNPS", 1, 0)) %>% 
+  ggplot(., aes(x=condition, y=PN, fill=condition)) +
+    stat_summary(fun = mean,
+                 geom = "bar",
+                 color = "black",
+                 width = 0.5,
+                 position = position_dodge(0.8)) +
+    # takes a long time to compute and standard error is around 0
+    # stat_summary(fun.data = "mean_cl_boot",
+    #              geom = "errorbar",
+    #              size = .3,
+    #              width = 0.2,
+    #              position = position_dodge(0.8)) +
+    scale_fill_manual(values=c('#fc8d62', '#66c2a5')) +
+    theme(legend.position = "none",
+          axis.title.x = element_blank()) +
+    ylab("Proportion of proper nouns")
+
+df_interpr_tags = sum_descr_pos %>% 
+  left_join(sum_caption_pos) %>% 
+  gather(text, frq, descr_frq, caption_frq) %>% 
+  mutate_at(vars(text), funs(ifelse(.=="caption_frq", "captions", "descriptions"))) %>%
+  mutate(interpr_tags = case_when(
+    str_starts(tags,"NNP") ~ "proper nouns",
+    tags == "NN" | tags == "NNS" ~ "nouns",
+    str_starts(tags, "JJ") ~ "adjectives",
+    str_starts(tags,"VB") ~ "verbs",
+    str_starts(tags,"PRP") ~ "pronouns",
+    TRUE ~ "other"
+  )) %>% 
+  filter(interpr_tags != "other") %>%
+  group_by(interpr_tags, text) %>% 
+  summarize(bin_frq = sum(frq)) %>% 
+  ungroup() %>% 
+  group_by(text) %>% 
+  mutate(prop_frq = bin_frq/sum(bin_frq),
+         std = sqrt(
+           (bin_frq*((1-prop_frq)^2) + 
+              (sum(bin_frq)-bin_frq)*((0-prop_frq)^2)) / sum(bin_frq)),
+         ci_up = prop_frq + ((1.96 * std)/sqrt(sum(bin_frq))),
+         ci_low = prop_frq - ((1.96 * std)/sqrt(sum(bin_frq)))) %>% 
+  ungroup()
+
+df_interpr_tags %>% 
+  mutate_at(vars(interpr_tags), funs(fct_relevel(.,levels=c("proper nouns", "nouns", "adjectives", "verbs", "pronouns")))) %>% 
+  ggplot(., aes(x=interpr_tags, y=prop_frq, fill=text)) +
+    geom_bar(stat="identity",
+             width=0.8,
+             color="black",
+             alpha=0.75,
+             position = position_dodge(0.8)) +
+    geom_errorbar(aes(ymin=ci_low,
+                      ymax=ci_up), 
+                  stat="identity",
+                  width=0.3,
+                  color="black",
+                  position = position_dodge(0.8)) +
+    scale_fill_manual(name="",
+                      labels=c("caption","description"),
+                      values=c('#ee7733','#009988')) +
+    theme(legend.position = "top") +
+    ylab("Proportion of occurrence") +
+    xlab("Part-of-Speech")
+
+ggsave("poscomparison.png", height=4,width=8)
+
+df_interpr_tags
+
+```
+
+
+
+# Most frequent words
+
+```{r freq data prep, include=FALSE}
+library(tidytext)
+
+df_descr_word = df_clean %>% 
+  select(article_id, description) %>% 
+  unnest_tokens(word, description) %>%
+  anti_join(stop_words)
+
+df_caption_word = df_clean %>% 
+  select(article_id, caption) %>% 
+  unnest_tokens(word, caption) %>%
+  anti_join(stop_words)
+
+frequency <- bind_rows(mutate(df_descr_word, category = "Description"),
+                       mutate(df_caption_word, category = "Caption")) %>% 
+  mutate(word = str_extract(word, "[a-z']+")) %>%
+  count(category, word) %>%
+  group_by(category) %>%
+  mutate(proportion = n / sum(n)) %>% 
+  select(-n) %>% 
+  arrange(-proportion)
+  # spread(category, proportion)
+
+```
+
+Captions require a bigger vocabulary/lexicon (12% of all word occurrences are unique) than descriptions (8% of all word occurrences are unique).
+
+```{r unique words, include=FALSE}
+
+df_descr_word = df_clean %>% 
+  filter(split == "test") %>% 
+  select(article_id, description) %>% 
+  unnest_tokens(word, description) %>%
+  anti_join(stop_words)
+
+df_caption_word = df_clean %>% 
+  filter(split == "test") %>% 
+  select(article_id, caption) %>% 
+  unnest_tokens(word, caption) %>%
+  anti_join(stop_words)
+
+nrow(df_descr_word)
+length(unique(df_descr_word$word))
+# Descriptions -- Proportion of unique words: 8%
+length(unique(df_descr_word$word))/nrow(df_descr_word)
+
+nrow(df_caption_word)
+length(unique(df_caption_word$word))
+# Captions -- Proportion of unique words: 13%
+length(unique(df_caption_word$word))/nrow(df_caption_word)
+
+
+```
+
+Descriptions in green and captions in red. 
+"th" and "st" are probably from 24**th** and **st**reet.
+
+```{r word clouds, echo=FALSE, fig.width=9, message=FALSE, warning=FALSE, out.width="100%", paged.print=FALSE}
+library(wordcloud)
+library(RColorBrewer)
+
+par(mfrow=c(1,2))
+
+pal <- brewer.pal(9, "BuGn")
+pal <- pal[-(1:3)]
+
+df_descr_wcount = df_descr_word %>%
+  mutate(word = str_extract(word, "[a-z']+")) %>%
+  filter(!is.na(word)) %>% 
+  count(word)
+
+df_descr_wcount %>%
+  with(wordcloud(word,
+                 n,
+                 max.words = 100,
+                 scale=c(3,.6),
+                 colors = pal
+                 # vfont=c("sans serif","plain")
+                 ))
+
+pal <- brewer.pal(9, "OrRd")
+pal <- pal[-(1:3)]
+
+df_caption_wcount = df_caption_word %>% 
+  mutate(word = str_extract(word, "[a-z']+")) %>%
+  filter(!is.na(word)) %>% 
+  count(word) %>% 
+  arrange(-n)
+
+df_caption_wcount %>%
+  with(wordcloud(word, 
+                 n, 
+                 max.words = 100, 
+                 scale=c(2.1,.4),
+                 colors = pal
+                 # vfont=c("sans serif","plain")
+                 ))
+```
+
+
+### Description
+
+Meta-information, e.g., *photograph*, *photo*, and probably *black* and *white* from *black and white photograph*.
+Colors in general (*white, black, red, blue*), location (*left, front*) and descriptive primitives (*wearing, map*).
+
+```{r freq descr, echo=FALSE}
+df_descr_word %>%
+  count(word, sort = TRUE) %>% 
+  head(., n=10)
+
+# frequency %>% 
+#   filter(!is.na(word)) %>% 
+#   filter(word != "ref",
+#          word != "nbsp") %>% 
+#   filter(category=="Description") %>% 
+#   arrange(-proportion)
+  
+
+```
+
+### Caption
+
+Less primitive descriptives (like colors) and more extra-image information (*won, century, john, view, 2009*).
+
+```{r freq caption, echo=FALSE}
+df_caption_word %>%
+  count(word, sort = TRUE) %>% 
+  head(., n=10)
+
+# frequency %>% 
+#   filter(!is.na(word)) %>% 
+#   filter(word != "ref",
+#          word != "nbsp") %>% 
+#   filter(category=="Caption") %>% 
+#   arrange(-proportion)
+```
+
+## Word frequency difference
+
+Highly correlated (Pearson: *r=0.52*, *p<0.0001*), but clear patterns. 
+
+```{r freq difference, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+
+library(scales)
+
+# count = bind_rows(mutate(df_descr_word, category = "Description"),
+#                        mutate(df_caption_word, category = "Caption")) %>% 
+#   mutate(word = str_extract(word, "[a-z']+")) %>%
+#   count(category, word) %>% 
+#   arrange(-n)
+
+# frequency %>% 
+#   # gather(category, value, Caption, Description) %>% 
+#   ggplot(., aes(x=proportion, color=category, fill=category)) +
+#     geom_histogram(alpha=0.4) +
+#     coord_cartesian(xlim=c(0,0.015), ylim = c(0,30))
+
+df_frq_plot = frequency %>% 
+  filter(!is.na(word)) %>% 
+  spread(category, proportion)
+
+df_frq_plot %>% 
+  ggplot(., aes(x=Description, y=Caption,color=abs(Description - Caption))) +
+    geom_abline(color = "gray40", lty = 2) +
+    geom_jitter(alpha = 0.1, size = 2.5, width = 0.3, height = 0.3) +
+    # geom_point(alpha = 0.1, size = 2.5) +
+    geom_text(aes(label = word), check_overlap = TRUE) +
+    scale_color_gradient(limits = c(0, 0.001), low = "#526f8b", high = "gray75") +
+    theme(legend.position="none") +
+    scale_x_log10(labels = percent_format()) +
+    scale_y_log10(labels = percent_format())
+
+# ggsave("word_frq_corr.png", height=5,width=8)
+
+```
+
+```{r frq corr, include=FALSE}
+# Pearson's product-moment correlation
+# 0.5243, p<0.0001
+cor.test(data = df_frq_plot,
+         ~ Description + Caption)
+```
+
+# Ngram analysis
+
+### Most frequent trigrams with stopwords
+
+Captions contain proper names (*united states*, *tour de france*), addresses events (*the battle of*) and extra-information (*part of the*, *was the first*, *of the first*).
+Descriptions contain a variety of locations (*foreground, background, front, left*), basic category reference to a person (*man*), clothing descriptives (*wearing*) and meta-photo information (multiple variants of *black and white photograph*).
+
+```{r ngram stopw, echo=FALSE, fig.width=10, fig.height=4.5}
+
+# df_descr_bigram = df_clean %>% 
+#   select(article, description) %>% 
+#   unnest_tokens(word, description, token = "ngrams", n = 2) %>% 
+#   count(word) %>% 
+#   arrange(-n) %>% 
+#   head(n=20)
+
+# df_caption_bigram = df_clean %>% 
+#   select(article, caption) %>% 
+#   unnest_tokens(word, caption, token = "ngrams", n = 2) %>% 
+#   count(word) %>% 
+#   arrange(-n) %>% 
+#   head(n=20)
+
+df_descr_trigram = df_clean %>% 
+  select(article_id, description) %>% 
+  unnest_tokens(word, description, token = "ngrams", n = 3) %>% 
+  count(word, sort=TRUE) %>% 
+  head(n=15) %>% 
+  mutate(condition = "description")
+
+df_caption_trigram = df_clean %>% 
+  select(article_id, caption) %>% 
+  unnest_tokens(word, caption, token = "ngrams", n = 3) %>% 
+  count(word, sort=TRUE) %>% 
+  head(n=15) %>% 
+  mutate(condition = "caption")
+
+df_caption_trigram %>%
+  rbind(df_descr_trigram) %>% 
+  filter(!is.na(word)) %>% 
+  ggplot(., aes(x=reorder_within(word,n,condition), 
+                y=n, 
+                fill=condition)) +
+    facet_wrap(~condition, scales = "free") +
+    ylab("") +
+    xlab("") +
+    scale_x_reordered() +
+    geom_bar(stat="identity", 
+             width=0.9) +
+    coord_flip() +
+    scale_fill_manual(values=c('#fc8d62', '#66c2a5')) +
+    theme(strip.background = element_rect(fill="white")) +
+    theme(legend.position = "none")
+
+# ggsave("trigrams.png", height=4.5,width=10)
+
+```
+
+### Most frequent bigrams without stopwords
+
+Captions are dominated by events and proper names.
+Descriptions are dominated by terms relating to appearance.
+
+```{r ngram nostopw, echo=FALSE, fig.width=10, fig.height=4.5}
+
+df_descr_bigram = df_clean %>% 
+  select(article_id, description) %>% 
+  unnest_tokens(trigram, description, token = "ngrams", n = 2) %>% 
+  separate(trigram, c("word1", "word2"), sep = " ") %>%
+  filter(
+    !word1 %in% stop_words$word,
+    !word2 %in% stop_words$word
+  ) %>%
+  count(word1, word2, sort = TRUE) %>% 
+  unite(bigram, word1:word2, remove=TRUE, sep=" ") %>% 
+  filter(!str_detect(bigram, "NA NA")) %>% 
+  head(n=15) %>% 
+  mutate(condition = "description")
+
+df_caption_bigram = df_clean %>% 
+  select(article_id, caption) %>% 
+  unnest_tokens(trigram, caption, token = "ngrams", n = 2) %>% 
+  separate(trigram, c("word1", "word2"), sep = " ") %>%
+  filter(
+    !word1 %in% stop_words$word,
+    !word2 %in% stop_words$word
+  ) %>%
+  count(word1, word2, sort = TRUE) %>% 
+  unite(bigram, word1:word2, remove=TRUE, sep=" ") %>% 
+  filter(!str_detect(bigram, "NA NA")) %>% 
+  head(n=15) %>% 
+  mutate(condition = "caption")
+
+df_caption_bigram %>%
+  rbind(df_descr_bigram) %>% 
+  ggplot(., aes(x=reorder_within(bigram,n,condition), 
+                y=n, 
+                fill=condition)) +
+    facet_wrap(~condition, scales = "free") +
+    ylab("") +
+    xlab("") +
+    scale_x_reordered() +
+    geom_bar(stat="identity", 
+             width=0.4,
+             # color="darkgrey",
+             alpha=0.75) +
+    coord_flip() +
+    scale_fill_manual(values=c('#ee7733','#009988')) +
+    theme(strip.background = element_rect(fill="white")) +
+    theme(legend.position = "none",
+          strip.text = element_text(size=18))
+
+ggsave("bigrams-nostopw.png", height=4.1,width=9.15)
+
+```
+

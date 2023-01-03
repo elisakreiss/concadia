@@ -1,0 +1,340 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+
+        <title>browser-based experiments</title>
+
+        <!-- fonts from Google fonts -->
+        <link href="https://fonts.googleapis.com/css?family=Noto+Sans:400,700|Noto+Serif:400,700|Playfair+Display:700" rel="stylesheet">
+
+        <!-- css -->
+        <link rel="stylesheet" type="text/css" href="styles/styles.css">
+
+        <!-- js dependencies -->
+        <script src="libraries/mustache/mustache.min.js"></script>
+        <script src="libraries/jquery/dist/jquery.min.js"></script>
+        <!-- This doesn't seem to be there on cloudflare -->
+        <script src="libraries/csv-js/csv.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.5/lodash.js"></script>
+
+        <!-- config -->
+        <script src="config/config_deploy.js"></script>
+
+        <!-- local js files -->
+        <script src="scripts/main.js"></script>
+        <script src="scripts/experiment.js"></script>
+        <script src="scripts/helpers.js"></script>
+        <script src="scripts/utils.js"></script>
+        <script src="scripts/submit_to_server.js"></script>
+
+        <!-- local trial_info files -->
+        <!-- <script src="trial_info/main_trials.js"></script> -->
+        <script src="trial_info/exp_sample.json"></script>
+        <script src="trial_info/attention_checks.json"></script>
+
+        <!-- views -->
+        <script src="views/views.js"></script>
+
+        <script src="//uniqueturker.myleott.com/lib.js" type="text/javascript"></script>
+        <script type="text/javascript">
+          $(document).ready(function(){
+            var ut_id = "67af9692b28ca9b1d1a07e648131902c";
+            if (UTWorkerLimitReached(ut_id)) {
+                $(".slide").hide();
+                $("body").html("Unfortunately, you have already participated in this or a similar HIT and the requester doesn't allow repeated participations on this task. We're sorry for the inconvenience! Please click 'Return HIT' to avoid any impact on your approval rating.");
+            }
+          });
+        </script>
+    </head>
+
+    <body>
+        <noscript>This task requires JavaScript. Please enable JavaScript in your browser and reload the page. For more information on how to do that, please refer to
+            <a href='https://enable-javascript.com' target='_blank'>enable-javascript.com</a>
+        </noscript>
+
+        <!-- views are inserted in main -->
+        <main id='main'>
+            Loading...
+        </main>
+
+        <!-- Mustache templates below. Each template is a view with a separate HTML structure. -->
+        <script id="botcaptcha-view" type="text/html">
+            <div class='view'>
+
+                {{# title }}
+                <h1>{{ title }}</h1>
+                {{/ title }}
+                <br>
+                {{{# text }}}
+                <section class="text-container">
+                    <p class="text">{{{ text }}}</p>
+                </section>
+                {{{/ text }}}
+                <br>
+                {{{# question }}}
+                <section class="text-container">
+                    <p class="text" id="quest-response">
+                        {{{ question }}}
+                        <textarea rows="1" cols="15" id="listener-response"></textarea>
+                    </p>
+                </section>
+                {{{/ question }}}
+                <br>
+                {{# button }}
+                <button id="next">{{ button }}</button>
+                {{/ button }}
+                {{^ button }}
+                <button id="next">Next</button>
+                {{/ button }}
+                <section class="answer-container">
+                    <p class="text" id="error_incorrect" style="color: #7CB637">This is incorrect.</p>
+                    <p class="text" id="error_2more" style="color: #7CB637">You have 2 more trials.</p>
+                    <p class="text" id="error_1more" style="color: #7CB637">You have 1 more trial.</p>
+                    <p class="text" id="error" style="color: #7CB637">Error: You failed to enter the correct response.</p>
+                </section>
+
+            </div>
+        </script>
+
+        <!-- Introduction view -->
+        <script id="intro-view" type="text/html">
+            <div class='view'>
+                <div class="picture">
+                    <img src={{ picture }} alt="a picture" height="100">
+                </div>
+                <br>
+                <br>
+                <!-- {{# title }}
+                <h1 class="title">{{ title }}</h1>
+                {{/ title }} -->
+                {{# text }}
+                <section class="text-container">
+                    <p class="text">{{{ text }}}</p>
+                </section>
+                {{/ text }}
+                <br>
+                {{# button }}
+                <button id="next" class="nodisplay">{{ button }}</button>
+                {{/ button }}
+                {{^ button }}
+                <button id="next">Next</button>
+                {{/ button }}
+                <br>
+                {{# legal_info }}
+                <section class="text-container">
+                    <hr>
+                    <br>
+                    <p class="legal-text">{{{ legal_info }}}</p>
+                </section>
+                {{/ legal_info }}
+                <p id="prolific-id-form">
+                    <label for="prolific-id">Please, enter your Prolific ID</label>
+                    <input type="text" id="prolific-id" />
+                </p>
+            </div>
+        </script>
+
+        <!-- main view (buttons response) -->
+        <script id="main-view" type="text/html">
+        <div class="view">
+            <!-- {{# context }}
+            <p class="question" style="font-size: 14px; font-style: italic;">
+            <strong>Excerpt of the article the image occurred in:</strong> {{{ context }}}
+            </p>
+            {{/ context }} -->
+            <div class="picture">
+                <img src={{ picture }} alt="a picture" height="280">
+                {{# critical_text }}
+                <p class="critical_text">
+                <strong>{{{ critical_text }}}</strong>
+                </p>
+                {{/ critical_text }}
+            </div>
+            <br>
+            <hr>
+            <br>
+            <div class="questions" id="questions">
+                {{# q1 }}
+                <p class="question">Q1: {{{ q1 }}}</p>
+                {{/ q1 }}
+                <p id="slider1_box" class="answer-container blend-out">
+                    {{# q1_slider_left }}
+                    <span class="slider_left">{{{ q1_slider_left }}}</span>
+                    {{/ q1_slider_left }}
+                    <input type="range" id="slider1" class="slider-response" min="0" max="100" value="0"/>
+
+                    {{# q1_slider_right }}
+                    <span class="slider_right">{{{ q1_slider_right }}}</span>
+                    {{/ q1_slider_right }}
+                    <br>
+                </p>
+
+                <br> 
+                
+                {{# q2 }}
+                <p class="question">Q2: {{{ q2 }}}</p>
+                {{/ q2 }}
+                <p id="slider2_box" class="answer-container blend-out">
+                    {{# q2_slider_left }}
+                    <span class="slider_left">{{{ q2_slider_left }}}</span>
+                    {{/ q2_slider_left }}
+                    <input type="range" id="slider2" class="slider-response" min="0" max="100" value="0"/>
+
+                    {{# q2_slider_right }}
+                    <span class="slider_right">{{{ q2_slider_right }}}</span>
+                    {{/ q2_slider_right }}
+                    <br>
+                </p>
+            </div>
+
+            <br> <br>
+            <p class="answer-container multchoice" style="text-align: center; color: black;">
+                {{# checkbox }}
+                <br>
+                <input type="checkbox" id="checkbox" name="checkbox"><label for="checkbox">{{{ checkbox }}}</label>
+                {{/ checkbox }}
+            </p>
+            
+            <br>
+            <!-- 
+            <p class="question">Q3: Is the bold text <strong>human generated or computer generated</strong>?</p>
+            <p class="answer-container multchoice" style="text-align: left;">
+                {{# generator_1 }}
+                <input type="radio" name="refexp" id="generator-1">{{ generator_1 }}<br>
+                {{/ generator_1 }}
+                {{# generator_2 }}
+                <input type="radio" name="refexp" id="generator-2">{{ generator_2 }}<br>
+                {{/ generator_2 }}
+                <input type="radio" name="refexp" id="generator-3">unclear<br>
+            </p>
+            <br> 
+            <p class="question">Q4: How likely would a <strong>journalist</strong> be to choose the bold text to <strong>occur below the image as a caption</strong>?</p>
+            <p id="slider_box" class="answer-container blend-out">
+                <span class="slider_left">Not likely</span>
+
+                <input type="range" id="slider" class="slider-response" min="0" max="100" value="50"/>
+
+                <span class="slider_left">Very likely</span>
+                <br>
+            </p>
+            <p class="question">Q5: Does the bold text help you understand <strong>why the image is shown</strong> for the article?</p>
+            <p class="answer-container multchoice" style="text-align: left;">
+                <input type="radio" name="refexp" id="generator-1">Clearly yes<br>
+                <input type="radio" name="refexp" id="generator-2">A little<br>
+                <input type="radio" name="refexp" id="generator-3">Clearly no<br>
+                <input type="radio" name="refexp" id="generator-3">Uncertain<br>
+            </p>
+            <br>  -->
+
+            <br>
+            <br>
+            <p class="comment-sect-voluntary" style="text-align: center;">
+                <label for="comments">Optional: Is there something else you would like to add?</label>
+                <textarea name="comments" id="comments" rows="2" cols="40"></textarea>
+            </p>
+            <br>
+
+            {{# button }}
+            <button id="next">{{ button }}</button>
+            {{/ button }}
+            {{^ button }}
+            <button id="next">Next</button>
+            {{/ button }}
+
+            <p id="error" class="help-text" style="visibility: hidden;">You haven't responded to all questions. To respond, please adjust the sliders accordingly. You can also tick the checkbox if text and image seem too unrelated to respond to the questions.</p>
+        </div>
+        </script>
+
+        <!-- post test view -->
+        <script id="post-test-view" type="text/html">
+        <div class="view post-test-templ">
+            {{# title }}
+            <h1>{{ title }}</h1>
+            {{/ title }}
+            {{# text }}
+            <section class="text-container">
+                <p class="text">{{ text }}</p>
+            </section>
+            {{/ text }}
+            <form>
+            <p>
+                <label for="HitCorrect">Did you read the instructions and do you think you did the HIT correctly?</label>
+                <select id="HitCorrect" name="HitCorrect">
+                    <option></option>
+                    <option value="0">No</option>
+                    <option value="1">Yes</option>
+                    <option value="404">I was confused</option>
+                </select>
+            </p>
+            <p>
+                <label for="age">Age:</label>
+                <input type="number" name="age" min="18" max="110" id="age" />
+            </p>
+            <p>
+                <label for="gender">Gender:</label>
+                <select id="gender" name="gender">
+                    <option></option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="other">Other</option>
+                </select>
+            </p>
+            <p>
+                <label for="education">Level of Education:</label>
+                <select id="education" name="education">
+                    <option></option>
+                    <option value="some_high_school">Some High School</option>
+                    <option value="graduated_high_school">Graduated High School</option>
+                    <option value="some_college">Some College</option>
+                    <option value="graduated_college">Graduated College</option>
+                    <option value="higher_degree">Hold a Higher Degree</option>
+                </select>
+            </p>
+            <p>
+                <label for="languages" name="languages">Native Languages: <br /><span>(i.e. the language(s) spoken at home when you were a child)</</span></label>
+                <input type="text" id="languages"/>
+            </p>
+            <p>
+                <label for="enjoyment">Enjoyment:</label>
+                <select id="enjoyment" name="enjoyment">
+                    <option></option>
+                    <option value="0">Worse than the Average Hit</option>
+                    <option value="1">Average Hit</option>
+                    <option value="2">Better than the Average Hit</option>
+                </select>
+            </p>
+            <p class="comment-sect">
+                <label for="comments">Further Comments:</label>
+                <textarea name="comments" id="comments"
+                rows="6" cols="40"></textarea>
+            </p>
+            {{# buttonText }}
+            <button id="next">{{ buttonText }}</button>
+            {{/ buttonText }}
+            {{^ buttonText }}
+            <button id="next">Next</button>
+            {{/ buttonText }}
+            </form>
+            </div>
+        </script>
+
+        <!-- Thanks View -->
+        <script id="thanks-view" type="x-tmpl-mustache">
+        <div class="view thanks-templ">
+            <h4 class="warning-message">submitting the data
+                <div class="loader"></div>
+            </h4>
+            {{# thanksMessage }}
+            <h1 class="thanks-message nodisplay">{{ thanksMessage }}</h1>
+            {{/ thanksMessage }}
+            {{^ thanksMessage }}
+            <h1 class="thanks-message nodisplay">Thank you for taking part in this experiment!</h1>
+            {{/ thanksMessage }}
+            {{# extraMessage }}
+            <h2 class="extra-message nodisplay">{{{ extraMessage }}}</h2>
+            {{/ extraMessage }}
+        </div>
+        </script>
+    </body>
+</html>

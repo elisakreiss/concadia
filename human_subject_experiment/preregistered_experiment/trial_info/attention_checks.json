@@ -1,0 +1,24 @@
+var attention_checks = [
+    {
+        "filename": "attentionchecks/book.png",
+        "text": {
+            "raw": "A man with a black-and-white suit leaning against a piano"
+        },
+        "condition": "text"
+        // "description": {
+        //     "raw": "A man with a black-and-white suit leaning against a piano",
+        //     "tokens": []
+        // }
+    },
+    {
+        "filename": "attentionchecks/man.png",
+        "text": {
+            "raw": "Arboreous Arboterium, a tree that primarily grows in California"
+        },
+        "condition": "text"
+        // "description": {
+        //     "raw": "Arboreous Arboterium, a tree that primarily grows in California",
+        //     "tokens": []
+        // }
+    }
+]

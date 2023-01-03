@@ -1,0 +1,429 @@
+---
+title: "CI: IDT analysis"
+# output: html_document
+output: rmarkdown::github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r data import, include=FALSE}
+library(cowplot)
+library(plyr)
+library(tidyverse)
+library(here)
+
+# theme_set(theme_cowplot())
+theme_set(theme_bw())
+
+df_import = read_csv(here("experiments","data","preregistered_exp_data.csv"))
+```
+
+```{r botresponse, include=FALSE}
+# check whether everyone entered a response into the textfield and no one cheated over js console
+ggplot(distinct(df_import, worker_id, botresponse),aes(x=str_to_lower(botresponse))) +
+  geom_histogram(stat="count")
+```
+
+# Subject pool
+
+
+```{r responses to postquestionnaire, eval=FALSE, fig.height=1.5, fig.width=4, include=FALSE}
+# check responses to post questionnaire, which participants I need to exclude (e.g., HitCorrect and NativeLanguage)
+df_hitcorrect = df_import %>% 
+  mutate_at(vars(HitCorrect),
+            funs(ifelse(HitCorrect==0,"no",
+                        ifelse(HitCorrect==404,"confused","yes"))))
+
+ggplot(df_hitcorrect,aes(x=HitCorrect)) +
+  geom_bar(width = .5,
+           fill = "orange") +
+  xlab("did you do the hit correctly")
+
+# languages
+unique(df_import$languages)
+
+# comments
+unique(df_import$comments)
+```
+
+## Exclusions
+
+We excluded participants who indicated that they did the Hit incorrectly or were confused (7), who indicated that they had a native language other than English (4), who gave more then 20% erroneous responses (2) and who did the Hit multiple times (1). Overall, we excluded 14 people. 33 participants per condition, i.e., 66 in total, remain.
+
+```{r participant exclusion, message=FALSE, include=FALSE}
+
+# to identify multiple submissions
+table(df_import$anon_worker_id)
+table(df_import$worker_id)
+# popular spellings of "english"
+engl_spellings = c("english|englis|eng|engilsh|englsh|en|american english")
+
+# 421
+length(unique(df_import$worker_id))
+
+# Exclusions
+df_clean = df_import %>% 
+  # 409
+  # 2) if native language is not english
+  mutate_at(vars(languages), funs(str_to_lower(.))) %>% 
+  # mutate_at(vars(languages), funs(ifelse(. %in% engl_spellings, "english", .))) %>% 
+  filter(str_detect(languages, engl_spellings)) %>% 
+  # 335
+  # 1) if hit was reportedly done incorrectly or participant was confused
+  filter(HitCorrect==1)
+  
+  # 69, 4130
+  # 3) if comments suggest that the hit was done incorrectly
+  # 4) if too many erroneous responses
+  # filter(anon_worker_id!="688591774563327" & anon_worker_id!="841129639930929") %>%
+  # 67, 4012
+  # 5) if hit was done multiple times by a worker
+  # filter(anon_worker_id!="886492649205797")
+  # 66, 3894
+
+# number of participants before exclusion (80)
+length(unique(df_import$anon_worker_id))
+length(unique(df_import$worker_id))
+# number of participants after exclusion (66)
+length(unique(df_clean$anon_worker_id))
+length(unique(df_clean$worker_id))
+
+# 33 participants per condition remain
+table(df_clean$condition)
+```
+
+```{r create main df, message=FALSE, include=FALSE}
+# create main df
+df = df_clean %>%
+  select(-startDate,-botresponse,-HitCorrect) %>% 
+  mutate(q_learn = ifelse(q1_type == "learn", q1_sliderval, q2_sliderval)) %>% 
+  mutate(q_replace = ifelse(q1_type == "replacement", q1_sliderval, q2_sliderval)) %>% 
+  gather(question, slider_val, q_learn, q_replace) %>% 
+  mutate_at(vars(slider_val), funs(./100)) %>% 
+  mutate(trial_half = ifelse(trial_number <= 16, "first half", "second half")) %>% 
+  # exclude participants who didn't pass attention check
+  mutate(pass = case_when(
+    (condition=="text") & (checkbox) ~ T,
+    TRUE ~ F
+  )) %>% 
+  group_by(worker_id) %>% 
+  mutate(passed_att = sum(pass)) %>% 
+  ungroup() %>% 
+  # 250
+  filter(passed_att == 4) %>% 
+  group_by(worker_id) %>% 
+  mutate(n_box_checked = sum(checkbox)) %>% 
+  ungroup() %>% 
+  # 244
+  filter(n_box_checked < 26) %>% 
+  group_by(picture, condition) %>% 
+  mutate(n_img_box_checked = sum(checkbox),
+         n_img_total = n()) %>% 
+  ungroup() %>% 
+  # 15616 -> 13942 datapoints
+  filter(n_img_box_checked/n_img_total <= 0.8)
+
+length(unique(df$worker_id))
+
+nrow(df)
+length(unique(df$picture))
+```
+
+
+## About the participants (after exclusion)
+
+There are no apparent anomalies in the age and gender distributions of our participants and the general feedback was neutral to positive.
+We expected that it would take participants approximately 7 minutes to complete, which seems to be reflected in the time they spent on it.
+
+```{r subj, echo=FALSE, fig.height=6, fig.width=8, message=FALSE, warning=FALSE}
+
+df_subj = df %>% 
+  # select(age,gender,enjoyment,timeSpent,anon_worker_id) %>% 
+  select(age,gender,enjoyment,timeSpent,worker_id) %>% 
+  distinct() %>% 
+  mutate_at(vars(age), funs(as.integer(.))) %>% 
+  mutate_at(vars(enjoyment), 
+            funs(case_when(
+              .==0 ~ "worse than\naverage",
+              .==1 ~ "average",
+              .==2 ~ "better than\naverage",
+              TRUE ~ "NA"
+            ))) %>% 
+  mutate_at(vars(enjoyment), funs(fct_relevel(.,"better than\naverage", "average", "worse than\naverage")))
+
+mean_age = round(mean(df_subj$age),digits = 1)
+p_age = ggplot(df_subj,aes(x=age)) +
+  geom_bar(width = .5,
+           fill = "orange",
+           color = "black") +
+  geom_vline(xintercept= mean_age) +
+  scale_x_continuous(breaks=c(20,30,50,60,70,mean_age))
+
+p_gen = ggplot(df_subj,aes(x=gender)) +
+  geom_bar(width = .5,
+           fill = "orange",
+           color = "black")
+
+p_enj = ggplot(df_subj,aes(x=enjoyment)) +
+  geom_bar(width = .5,
+           fill = "orange",
+           color = "black")
+
+mean_time = round(mean(df_subj$timeSpent), digits = 1)
+median_time = round(median(df_subj$timeSpent), digits = 1)
+p_time = ggplot(df_subj,aes(x=timeSpent)) +
+  geom_histogram(fill = "orange",
+           color = "black") +
+  geom_vline(xintercept=mean_time) +
+  geom_vline(xintercept=median_time,linetype="dashed") +
+  scale_x_continuous(breaks=c(median_time,mean_time,floor(5),floor(15),floor(20))) +
+  xlab("time spent") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+plot_grid(p_age, p_gen, p_enj, p_time, labels = "AUTO", ncol = 2, align = 'v')
+
+```
+
+# Analysis
+
+```{r}
+df %>% 
+  filter(condition != "text") %>%
+  filter(!checkbox) %>%
+  filter(question == "q_replace") %>%
+  mutate(text_type = ifelse(str_detect(condition, "capt"), "caption", "description")) %>% 
+  ggplot(aes(x=reorder(condition, -slider_val), y=slider_val, fill=condition)) +
+    # facet_grid(~trial_half) +
+    stat_summary(fun = "mean", 
+                 geom = "bar",
+                 # fill = "grey",
+                 color = "black",
+                 width = 0.75,
+                 alpha=0.75) +
+    stat_summary(fun.data = "mean_cl_boot",
+                 geom = "errorbar",
+                 color = "black",
+                 size = .3,
+                 width = 0.2) +
+    xlab("Text source") +
+    ylab("Slider value") +
+    theme(axis.text.x = element_blank(),
+          # axis.text.x = element_text(size=12),
+          # axis.title = element_text(size=14),
+          axis.title = element_blank(),
+          legend.position = "none") +
+    scale_fill_manual(values=c('#EE7733', '#009988', 'white', 'white'))
+    # ggtitle("How useful would the text alone be to help someone imagine this picture\n(e.g, a visually impaired person)?")
+
+# ggsave(here("humanexp_q1.png"), width = 3.5, height = 2)
+
+df %>% 
+  filter(condition != "text") %>%
+  filter(!checkbox) %>%
+  filter(question == "q_learn") %>%
+  mutate(text_type = ifelse(str_detect(condition, "capt"), "caption", "description")) %>% 
+  ggplot(aes(x=reorder(condition, -slider_val), y=slider_val, fill=condition)) +
+    # facet_grid(~trial_half) +
+    stat_summary(fun = "mean", 
+                 geom = "bar",
+                 # fill = "grey",
+                 color = "black",
+                 alpha = 0.75,
+                 width = 0.75) +
+    stat_summary(fun.data = "mean_cl_boot",
+                 geom = "errorbar",
+                 color = "black",
+                 size = .3,
+                 width = 0.2) +
+    # xlab("Text source") +
+    # ylab("Slider value") +
+    theme(axis.text.x = element_blank(),
+          # axis.text.x = element_text(size=12),
+          # axis.title = element_text(size=14),
+          axis.title = element_blank(),
+          legend.position = "none") +
+    scale_fill_manual(values=c('#EE7733', '#009988', 'white', 'white'))
+    # ggtitle("How much did you learn from the text that you couldn't learn from the image?")
+
+# ggsave(here("humanexp_q2.png"), width = 3.5, height = 2)
+```
+
+
+```{r rejection rate}
+df %>% 
+  filter(condition != "text") %>% 
+  filter(question == "q_learn") %>%
+  mutate(text_type = ifelse(str_detect(condition, "capt"), "caption", "description")) %>%
+  mutate(source = ifelse(str_detect(condition, "gen"), "generated", "original")) %>% 
+  mutate_at(vars(checkbox), funs(ifelse(checkbox, 1, 0))) %>% 
+  mutate_at(vars(source), funs(fct_relevel(., "original", "generated"))) %>%
+  ggplot(aes(x=reorder(condition, checkbox), y=checkbox, fill=condition)) +
+    # facet_grid(~trial_half) +
+    stat_summary(fun = "mean", 
+                 geom = "bar",
+                 # fill = "grey",
+                 color = "black",
+                 width=0.75,
+                 alpha=0.75) +
+    stat_summary(fun.data = "mean_cl_boot",
+                 geom = "errorbar",
+                 color = "black",
+                 size = .3,
+                 width = 0.2) +
+    theme(axis.text.x = element_blank(),
+          # axis.text.x = element_text(size=12),
+          # axis.title = element_text(size=14),
+          axis.title = element_blank(),
+          legend.position = "none"
+          ) +
+    scale_fill_manual(values=c('#EE7733', '#009988', 'white', 'white'))
+    # xlab("Text source") +
+    # ylab("Proportion of text rejection") +
+    # ggtitle("Image and text seem to be unrelated")
+
+ggsave(here("humanexp_reject.png"), width = 2.9, height = 2)
+
+```
+
+```{r}
+df %>% 
+  group_by(picture) %>% 
+  summarize(count = n()) %>% 
+  ungroup() %>% 
+  view()
+
+# df %>% 
+#   filter(condition != "text") %>% 
+#   filter(!(question == "q_learn" & checkbox)) %>%
+#   ggplot(aes(x=condition, y=slider_val, fill=question)) +
+#     facet_grid(~question) +
+#     stat_summary(fun = "mean", 
+#                  geom = "bar",
+#                  position = position_dodge(0.8)) +
+#     stat_summary(fun.data = "mean_cl_boot",
+#                  geom = "errorbar",
+#                  color = "black",
+#                  size = .3,
+#                  width = 0.3,
+#                  position = position_dodge(0.8))
+# 
+# df %>% 
+#   filter(condition != "text") %>% 
+#   group_by(picture, question) %>% 
+#   mutate(not_suitable_rate = sum(checkbox)) %>% 
+#   ungroup() %>% 
+#   filter(!(question == "q_learn" & checkbox)) %>% 
+#   ggplot(aes(x=condition, y=slider_val, fill=question)) +
+#     facet_wrap(~picture) +
+#     stat_summary(fun = "mean", 
+#                  geom = "bar",
+#                  position = position_dodge(0.8)) +
+#     stat_summary(fun.data = "mean_cl_boot",
+#                  geom = "errorbar",
+#                  color = "black",
+#                  size = .3,
+#                  width = 0.3,
+#                  position = position_dodge(0.8)) +
+#     theme(axis.text.x = element_text(angle = 30, hjust = 1))
+
+```
+
+```{r}
+library(brms)
+options(mc.cores = parallel::detectCores())
+# library(HDInterval)
+```
+
+```{r}
+# my_packages <- as.data.frame(installed.packages()[ , c(1, 3:4)])            # Apply installed.packages()
+# my_packages <- my_packages[is.na(my_packages$Priority), 1:2, drop = FALSE]  # Remove NA rows
+# rownames(my_packages) <- NULL
+```
+
+
+```{r}
+df_model_prereg_H1 = df %>%
+  select(slider_val, condition, worker_id, picture, checkbox, question) %>% 
+  filter((condition == "description") | (condition == "caption"),
+         !checkbox,
+         question == "q_replace") %>% 
+  mutate_at(vars(condition), funs(ifelse(. == "description", 0, 1))) %>%
+  mutate(c_condition = condition-mean(condition))
+
+f_prereg_H1 = slider_val ~ c_condition + (1+c_condition|worker_id) + (1+condition|picture)
+
+model_prereg_H1 = brm(
+  formula = f_prereg_H1,
+  data = df_model_prereg_H1,
+  seed = 1702,
+  family = 'zero_one_inflated_beta'
+)
+
+summary(model_prereg_H1)
+
+
+
+df_model_prereg_H2 = df %>%
+  select(slider_val, condition, worker_id, picture, checkbox, question) %>% 
+  filter((condition == "description") | (condition == "caption"),
+         !checkbox,
+         question == "q_learn") %>% 
+  mutate_at(vars(condition), funs(ifelse(. == "description", 0, 1))) %>%
+  mutate(c_condition = condition-mean(condition))
+
+f_prereg_H2 = slider_val ~ c_condition + (1+c_condition|worker_id) + (1+condition|picture)
+
+model_prereg_H2 = brm(
+  formula = f_prereg_H2,
+  data = df_model_prereg_H2,
+  seed = 1702,
+  family = 'zero_one_inflated_beta'
+)
+
+summary(model_prereg_H2)
+```
+
+```{r}
+df_model_prereg_H3 = df %>%
+  select(slider_val, condition, worker_id, picture, checkbox, question) %>% 
+  filter((condition == "generated_descr") | (condition == "generated_capt"),
+         !checkbox,
+         question == "q_replace") %>% 
+  mutate_at(vars(condition), funs(ifelse(. == "generated_descr", 0, 1))) %>%
+  mutate(c_condition = condition-mean(condition))
+
+f_prereg_H3 = slider_val ~ c_condition + (1+c_condition|worker_id) + (1+condition|picture)
+
+model_prereg_H3 = brm(
+  formula = f_prereg_H3,
+  data = df_model_prereg_H3,
+  seed = 1702,
+  family = 'zero_one_inflated_beta'
+)
+
+summary(model_prereg_H3)
+
+
+
+df_model_prereg_H4 = df %>%
+  select(slider_val, condition, worker_id, picture, checkbox, question) %>% 
+  filter((condition == "generated_descr") | (condition == "generated_capt"),
+         !checkbox,
+         question == "q_learn") %>% 
+  mutate_at(vars(condition), funs(ifelse(. == "generated_descr", 0, 1))) %>%
+  mutate(c_condition = condition-mean(condition))
+
+f_prereg_H4 = slider_val ~ c_condition + (1+c_condition|worker_id) + (1+condition|picture)
+
+model_prereg_H4 = brm(
+  formula = f_prereg_H4,
+  data = df_model_prereg_H4,
+  seed = 1702,
+  family = 'zero_one_inflated_beta'
+)
+
+summary(model_prereg_H4)
+```
+
